@@ -1,0 +1,414 @@
+{
+  "vrv_catalog": [
+    {
+      "model": "RELQ72 - 120",
+      "description": "Heat Recovery VRV - 1 Module (Aurora - 575V)",
+      "row": 8
+    },
+    {
+      "model": "RELQ144 - 240",
+      "description": "Heat Recovery VRV - 2 Modules (Aurora - 575V)",
+      "row": 9
+    },
+    {
+      "model": "REYQ72 - 168",
+      "description": "Heat Recovery VRV - 1 Module (208-230V ,460V ,575V)",
+      "row": 10
+    },
+    {
+      "model": "REYQ192 - 336",
+      "description": "Heat Recovery VRV - 2 Modules (208-230V ,460V ,575V)",
+      "row": 11
+    },
+    {
+      "model": "REYQ360 - 456",
+      "description": "Heat Recovery VRV - 3 Modules (208-230V ,460V ,575V)",
+      "row": 12
+    },
+    {
+      "model": "RXYQ72 - 168",
+      "description": "Heat Pump VRV - 1 Module (208-230V ,460V ,575V)",
+      "row": 13
+    },
+    {
+      "model": "RXLQ72 - 120",
+      "description": "Heat Pump VRV - 1 Module (Aurora - 575V)",
+      "row": 14
+    },
+    {
+      "model": "RXLQ144 - 240",
+      "description": "Heat Pump VRV - 2 Modules (Aurora - 575V)",
+      "row": 15
+    },
+    {
+      "model": "RXYQ192 - 336",
+      "description": "Heat Pump VRV - 2 Modules (208-230V ,460V ,575V)",
+      "row": 16
+    },
+    {
+      "model": "RXYQ360 - 408",
+      "description": "Heat Pump VRV - 3 Modules (208-230V ,460V ,575V)",
+      "row": 17
+    },
+    {
+      "model": "RXTQ36 - 60",
+      "description": "Heat Pump VRV-S (208-230V/1ph)",
+      "row": 18
+    },
+    {
+      "model": "RXYMQ36 - 48",
+      "description": "Heat Pump VRV-III-S (208-230V/1ph)",
+      "row": 19
+    },
+    {
+      "model": "BSQ36TVJ/BSVQ36",
+      "description": "Branch Selector Unit - Single Port",
+      "row": 20
+    },
+    {
+      "model": "BSQ60TVJ/BSVQ60",
+      "description": "Branch Selector Unit - Single Port",
+      "row": 21
+    },
+    {
+      "model": "BSQ96TVJ/BSVQ96",
+      "description": "Branch Selector Unit - Single Port",
+      "row": 22
+    },
+    {
+      "model": "BS4Q54TVJ/BSV4Q36",
+      "description": "Branch Selector Unit - 4 Port",
+      "row": 23
+    },
+    {
+      "model": "BS6Q54TVJ/BSV6Q36",
+      "description": "Branch Selector Unit - 6 Port",
+      "row": 24
+    },
+    {
+      "model": "BS8Q54TVJ",
+      "description": "Branch Selector Unit - 8 Port",
+      "row": 25
+    },
+    {
+      "model": "BS10Q54TVJ",
+      "description": "Branch Selector Unit - 10 Port",
+      "row": 26
+    },
+    {
+      "model": "BS12Q54TVJ",
+      "description": "Branch Selector Unit - 12 Port",
+      "row": 27
+    },
+    {
+      "model": "BSF4Q54TVJ",
+      "description": "Flex Branch Selector Unit - 4 Port",
+      "row": 28
+    },
+    {
+      "model": "BSF6Q54TVJ",
+      "description": "Flex Branch Selector Unit - 6 Port",
+      "row": 29
+    },
+    {
+      "model": "BSF8Q54TVJ",
+      "description": "Flex Branch Selector Unit - 8 Port",
+      "row": 30
+    },
+    {
+      "model": "FXAQ07 - 15",
+      "description": "Wall Mounted Unit",
+      "row": 31
+    },
+    {
+      "model": "FXAQ18 - 24",
+      "description": "Wall Mounted Unit",
+      "row": 32
+    },
+    {
+      "model": "FXDQ07 - 15",
+      "description": "Slim Duct Concealed (Ducted)",
+      "row": 33
+    },
+    {
+      "model": "FXDQ18 - 24",
+      "description": "Slim Duct Concealed (Ducted)",
+      "row": 34
+    },
+    {
+      "model": "FXDQ07 - 15(Limited)",
+      "description": "Slim Duct Concealed (Limited Ducted/Hotel App)",
+      "row": 35
+    },
+    {
+      "model": "FXDQ18 - 24(Limited)",
+      "description": "Slim Duct Concealed (Limited Ducted/Hotel App)",
+      "row": 36
+    },
+    {
+      "model": "FXEQ07 - 15",
+      "description": "One Way Blow Cassette Unit",
+      "row": 37
+    },
+    {
+      "model": "FXEQ18 - 24",
+      "description": "One Way Blow Cassette Unit",
+      "row": 38
+    },
+    {
+      "model": "FXFQ07 - 15",
+      "description": "Round Flow Cassette",
+      "row": 39
+    },
+    {
+      "model": "FXFQ18 - 24",
+      "description": "Round Flow Cassette",
+      "row": 40
+    },
+    {
+      "model": "FXFQ30 - 36",
+      "description": "Round Flow Cassette",
+      "row": 41
+    },
+    {
+      "model": "FXFQ42 - 48",
+      "description": "Round Flow Cassette",
+      "row": 42
+    },
+    {
+      "model": "FXHQ12 - 15",
+      "description": "Ceiling Suspended Unit",
+      "row": 43
+    },
+    {
+      "model": "FXHQ18 - 24",
+      "description": "Ceiling Suspended Unit",
+      "row": 44
+    },
+    {
+      "model": "FXHQ30 - 36",
+      "description": "Ceiling Suspended Unit",
+      "row": 45
+    },
+    {
+      "model": "FXLQ07 - 15",
+      "description": "Floor Standing Unit",
+      "row": 46
+    },
+    {
+      "model": "FXLQ18 - 24",
+      "description": "Floor Standing Unit",
+      "row": 47
+    },
+    {
+      "model": "FXMQ07 - 15",
+      "description": "DC Ducted Concealed Unit",
+      "row": 48
+    },
+    {
+      "model": "FXMQ18 - 24",
+      "description": "DC Ducted Concealed Unit",
+      "row": 49
+    },
+    {
+      "model": "FXMQ30 - 36",
+      "description": "DC Ducted Concealed Unit",
+      "row": 50
+    },
+    {
+      "model": "FXMQ42 - 48",
+      "description": "DC Ducted Concealed Unit",
+      "row": 51
+    },
+    {
+      "model": "FXMQ54 - 72",
+      "description": "DC Ducted Concealed Unit / Concealed Ceiling Unit",
+      "row": 52
+    },
+    {
+      "model": "FXMQ96",
+      "description": "Concealed Ceiling Unit",
+      "row": 53
+    },
+    {
+      "model": "FXMQ48MF",
+      "description": "100% Outside Air Processing Unit",
+      "row": 54
+    },
+    {
+      "model": "FXMQ72MF",
+      "description": "100% Outside Air Processing Unit",
+      "row": 55
+    },
+    {
+      "model": "FXMQ96MF",
+      "description": "100% Outside Air Processing Unit",
+      "row": 56
+    },
+    {
+      "model": "FXNQ07 - 15",
+      "description": "Concealed Floor Standing Unit",
+      "row": 57
+    },
+    {
+      "model": "FXNQ18 - 24",
+      "description": "Concealed Floor Standing Unit",
+      "row": 58
+    },
+    {
+      "model": "FXSQ05 - 15",
+      "description": "MSP Concealed Ducted Unit",
+      "row": 59
+    },
+    {
+      "model": "FXSQ18 - 24",
+      "description": "MSP Concealed Ducted Unit",
+      "row": 60
+    },
+    {
+      "model": "FXSQ30 - 36",
+      "description": "MSP Concealed Ducted Unit",
+      "row": 61
+    },
+    {
+      "model": "FXSQ42 - 48",
+      "description": "MSP Concealed Ducted Unit",
+      "row": 62
+    },
+    {
+      "model": "FXSQ54 - 60",
+      "description": "MSP Concealed Ducted Unit",
+      "row": 63
+    },
+    {
+      "model": "FXTQ12 - 15",
+      "description": "Vertical/Multi-Position Air Handling Unit (Ducted)",
+      "row": 64
+    },
+    {
+      "model": "FXTQ18 - 24",
+      "description": "Vertical/Multi-Position Air Handling Unit (Ducted)",
+      "row": 65
+    },
+    {
+      "model": "FXTQ30 - 36",
+      "description": "Vertical/Multi-Position Air Handling Unit (Ducted)",
+      "row": 66
+    },
+    {
+      "model": "FXTQ42 - 48",
+      "description": "Vertical/Multi-Position Air Handling Unit (Ducted)",
+      "row": 67
+    },
+    {
+      "model": "FXTQ54 - 60",
+      "description": "Vertical/Multi-Position Air Handling Unit (Ducted)",
+      "row": 68
+    },
+    {
+      "model": "FXUQ18 - 24",
+      "description": "4-Way Blow Ceiling-Suspended",
+      "row": 69
+    },
+    {
+      "model": "FXUQ30 - 36",
+      "description": "4-Way Blow Ceiling-Suspended",
+      "row": 70
+    },
+    {
+      "model": "FXZQ07 - 15",
+      "description": "4-Way Ceiling Cassette 2' x 2'",
+      "row": 71
+    },
+    {
+      "model": "FXZQ18",
+      "description": "4-Way Ceiling Cassette 2' x 2'",
+      "row": 72
+    },
+    {
+      "model": "VAM300 - 470",
+      "description": "Energy Recovery Unit (Ducted)",
+      "row": 73
+    },
+    {
+      "model": "VAM600",
+      "description": "Energy Recovery Unit (Ducted)",
+      "row": 74
+    },
+    {
+      "model": "VAM1200",
+      "description": "Energy Recovery Unit (Ducted)",
+      "row": 75
+    },
+    {
+      "model": "KHRP25",
+      "description": "REFNET Branch Piping Kit (3 Pipe)",
+      "row": 76
+    },
+    {
+      "model": "KHRP25---H9",
+      "description": "REFNET Header (3 Pipe)",
+      "row": 77
+    },
+    {
+      "model": "KHRP26",
+      "description": "REFNET Branch Piping Kit (2 Pipe)",
+      "row": 78
+    },
+    {
+      "model": "KHRP26---H9",
+      "description": "REFNET Header (2 Pipe)",
+      "row": 79
+    },
+    {
+      "model": "BHFP26P90 - 151U",
+      "description": "Condensing Unit Multi Connection Piping Kit (HR)",
+      "row": 80
+    },
+    {
+      "model": "BHFP22P100U/151U",
+      "description": "Condensing Unit Multi Connection Piping Kit (HP)",
+      "row": 81
+    },
+    {
+      "model": "R410A",
+      "description": "REFRIGERANT(Pounds)",
+      "row": 85
+    },
+    {
+      "model": "BRC1E73/BRC1E52A7",
+      "description": "Navigation Controller",
+      "row": 87
+    },
+    {
+      "model": "BRC2A71",
+      "description": "Simplfied",
+      "row": 88
+    },
+    {
+      "model": "DCS601C71",
+      "description": "I-Touch",
+      "row": 89
+    },
+    {
+      "model": "DCM601A71",
+      "description": "I-Touch Manager",
+      "row": 90
+    },
+    {
+      "model": "BACNet Interface",
+      "description": "BACNet Interface",
+      "row": 91
+    },
+    {
+      "model": "I Touch WEB",
+      "description": "I Touch WEB",
+      "row": 92
+    },
+    {
+      "model": "3/4\" Pipe Size",
+      "description": "COND DRAINS (30'-3/4\")",
+      "row": 96
+    }
+  ]
+}

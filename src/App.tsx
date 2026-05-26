@@ -1,3 +1,5 @@
+import { registerSectionViewTarget } from './analytics/amplitude'
+import type { SectionViewId } from './analytics/events'
 import { HelpIconButton, HelpTutorial, useHelpTutorialAutoOpen } from './components/HelpTutorial'
 import { AdminSettings } from './components/AdminSettings'
 import { ControlsSection } from './components/ControlsSection'
@@ -11,7 +13,7 @@ import { StickySummaryBar } from './components/StickySummaryBar'
 import { SummarySection } from './components/SummarySection'
 import { VrvSection } from './components/VrvSection'
 import { SECTION_META, WORKFLOW_SECTIONS } from './data/sectionGuide'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { EstimateProvider, useEstimate } from './context/EstimateContext'
 import type { SectionId } from './types'
 
@@ -22,6 +24,23 @@ const helpBtnClass =
 
 const helpBtnClassLight =
   'flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-daikin-navy shadow-sm transition-colors hover:bg-daikin-input'
+
+function SectionViewShell({
+  sectionId,
+  children,
+}: {
+  sectionId: SectionViewId
+  children: ReactNode
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const { totals } = useEstimate()
+
+  useEffect(() => {
+    return registerSectionViewTarget(ref.current, sectionId, totals.totalInstallCost)
+  }, [sectionId, totals.totalInstallCost])
+
+  return <div ref={ref}>{children}</div>
+}
 
 function nextWorkflowSection(current: SectionId): SectionId | null {
   const idx = WORKFLOW_SECTIONS.findIndex((s) => s.id === current)
@@ -118,12 +137,36 @@ function AppContent() {
             />
           )}
 
-          {activeSection === 'vrv' && <VrvSection />}
-          {activeSection === 'other' && <OtherEquipmentSection />}
-          {activeSection === 'piping' && <PipingSection />}
-          {activeSection === 'controls' && <ControlsSection />}
-          {activeSection === 'summary' && <SummarySection />}
-          {activeSection === 'admin' && <AdminSettings />}
+          {activeSection === 'vrv' && (
+            <SectionViewShell sectionId="vrv">
+              <VrvSection />
+            </SectionViewShell>
+          )}
+          {activeSection === 'other' && (
+            <SectionViewShell sectionId="other">
+              <OtherEquipmentSection />
+            </SectionViewShell>
+          )}
+          {activeSection === 'piping' && (
+            <SectionViewShell sectionId="piping">
+              <PipingSection />
+            </SectionViewShell>
+          )}
+          {activeSection === 'controls' && (
+            <SectionViewShell sectionId="controls">
+              <ControlsSection />
+            </SectionViewShell>
+          )}
+          {activeSection === 'summary' && (
+            <SectionViewShell sectionId="summary">
+              <SummarySection />
+            </SectionViewShell>
+          )}
+          {activeSection === 'admin' && (
+            <SectionViewShell sectionId="admin">
+              <AdminSettings />
+            </SectionViewShell>
+          )}
         </div>
       </main>
 

@@ -1,3 +1,4 @@
+import { trackEstimateEvent } from '../analytics/amplitude'
 import { ValidationBanner } from './ValidationBanner'
 import { useEstimate } from '../context/EstimateContext'
 import { exportEstimateToPdf } from '../utils/export'
@@ -105,7 +106,10 @@ export function SummarySection() {
           type="button"
           className="rounded bg-daikin-accent px-4 py-2 font-semibold text-white hover:bg-amber-600"
           onClick={() =>
-            validateAndProceed('complete', () => exportEstimateToPdf(state, totals))
+            validateAndProceed('complete', () => {
+              exportEstimateToPdf(state, totals)
+              trackEstimateEvent('pdf_exported', {}, totals.totalInstallCost)
+            })
           }
         >
           Export to PDF

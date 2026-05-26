@@ -35,6 +35,13 @@ import {
   type ValidationScope,
 } from '../utils/validation'
 import {
+  equipmentKeyToSection,
+  resetEstimateAnalyticsSession,
+  trackEquipmentQuantityChanged,
+  trackEstimateEvent,
+} from '../analytics/amplitude'
+import type { ValidationScopeProp } from '../analytics/events'
+import {
   autoFillLineItems,
   calculateTotals,
   deriveControlsWiringQuantities,
@@ -244,7 +251,26 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
       items: LineItem[]
     ) => {
       const filled = applyAutoFill(key as EquipmentLineKey, items)
+      const section = equipmentKeyToSection(key)
       setState((prev) => {
+        if (section) {
+          const prevItems = prev[key] as LineItem[]
+          const nextState = { ...prev, [key]: filled }
+          const nextTotals = calculateTotals(nextState)
+          for (const item of filled) {
+            const old = prevItems.find((i) => i.id === item.id)
+            if (!old || old.quantity === item.quantity) continue
+            trackEquipmentQuantityChanged(
+              {
+                model: item.model,
+                new_qty: Math.round(item.quantity),
+                old_qty: Math.round(old.quantity),
+                section,
+              },
+              nextTotals.totalInstallCost
+            )
+          }
+        }
         const next = { ...prev, [key]: filled }
         const equipmentKeys = [
           'vrvOutdoor',
@@ -287,6 +313,14 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
     (scope: ValidationScope, action: () => void) => {
       const result = validateEstimate(state, scope)
       if (!result.isValid) {
+        trackEstimateEvent(
+          'validation_failed',
+          {
+            scope: scope as ValidationScopeProp,
+            issue_count: result.messages.length,
+          },
+          totals.totalInstallCost
+        )
         setValidationScope(scope)
         setShowValidation(true)
         setActiveSection(firstSectionForValidation(result))
@@ -297,7 +331,7 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
       action()
       return true
     },
-    [state]
+    [state, totals.totalInstallCost]
   )
 
   const saveProject = useCallback(
@@ -313,6 +347,7 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
         setSavedProjects(next)
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(next))
         logChange(`Saved project: ${project.name}`)
+        trackEstimateEvent('estimate_saved', {}, calculateTotals(state).totalInstallCost)
       })
     },
     [state, savedProjects, logChange, validateAndProceed]
@@ -379,6 +414,7 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
   )
 
   const resetEstimate = useCallback(() => {
+    resetEstimateAnalyticsSession()
     setState({ ...createInitialState(), adminRates: state.adminRates })
     logChange('Reset estimate')
   }, [state.adminRates, logChange])

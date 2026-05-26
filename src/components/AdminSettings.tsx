@@ -1,13 +1,17 @@
 import { useState } from 'react'
+import { AdminAnalytics } from '../analytics/AdminAnalytics'
 import { useEstimate } from '../context/EstimateContext'
 import type { AdminRates } from '../types'
 
 const ADMIN_PASSWORD = 'daikin2026'
 
+type AdminTab = 'settings' | 'analytics'
+
 export function AdminSettings() {
   const { state, updateState } = useEstimate()
   const [unlocked, setUnlocked] = useState(false)
   const [password, setPassword] = useState('')
+  const [adminTab, setAdminTab] = useState<AdminTab>('settings')
   const admin = state.adminRates
 
   const updateRates = (patch: Partial<AdminRates>) => {
@@ -47,6 +51,35 @@ export function AdminSettings() {
 
   return (
     <div className="space-y-6">
+      <div className="flex gap-2 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          className={`rounded px-3 py-1.5 text-sm font-medium ${
+            adminTab === 'settings'
+              ? 'bg-daikin-navy text-white'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+          onClick={() => setAdminTab('settings')}
+        >
+          Settings
+        </button>
+        <button
+          type="button"
+          className={`rounded px-3 py-1.5 text-sm font-medium ${
+            adminTab === 'analytics'
+              ? 'bg-daikin-navy text-white'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+          onClick={() => setAdminTab('analytics')}
+        >
+          Analytics
+        </button>
+      </div>
+
+      {adminTab === 'analytics' && <AdminAnalytics active />}
+
+      {adminTab === 'settings' && (
+      <>
       <div className="rounded-lg border bg-white p-4">
         <h3 className="mb-3 font-semibold text-daikin-navy">Labor Rates</h3>
         <div className="grid gap-4 md:grid-cols-2">
@@ -136,6 +169,8 @@ export function AdminSettings() {
       <div className="rounded-lg border bg-amber-50 p-4 text-sm text-amber-900">
         Changes save automatically to localStorage and apply to all new quantity entries.
       </div>
+      </>
+      )}
     </div>
   )
 }

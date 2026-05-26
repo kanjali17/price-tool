@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FreeTextLine, LineItem } from '../types'
 import { formatCurrency, formatNumber, parseQuantity } from '../utils/calculations'
+const COLLAPSE_STORAGE_KEY = 'daikin-equipment-collapse'
+function loadCollapsed(k: string) {
+  try { return !!(JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY) || '{}') as Record<string, boolean>)[k] } catch { return false }
+}
+function saveCollapsed(k: string, v: boolean) {
+  try {
+    const o = JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY) || '{}') as Record<string, boolean>
+    o[k] = v
+    localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(o))
+  } catch { /* */ }
+}
+
 import { matchesEquipmentSearch, sortBySearchRelevance } from '../utils/equipmentSearch'
 
 interface EquipmentTableProps {
@@ -97,13 +109,15 @@ export function EquipmentTable({
   onBulkEntry,
   searchQuery = '',
 }: EquipmentTableProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => loadCollapsed(title))
   const [bulkText, setBulkText] = useState('')
   const searching = searchQuery.trim().length > 0
 
   useEffect(() => {
     if (searching) setCollapsed(false)
   }, [searching])
+
+  useEffect(() => { saveCollapsed(title, collapsed) }, [collapsed, title])
 
   const updateItem = (id: string, patch: Partial<LineItem>) => {
     onChange(items.map((i) => (i.id === id ? { ...i, ...patch } : i)))
@@ -265,7 +279,7 @@ interface FreeTextTableProps {
 }
 
 export function FreeTextTable({ title, lines, onChange, searchQuery = '' }: FreeTextTableProps) {
-  const [collapsed, setCollapsed] = useState(true)
+  const [collapsed, setCollapsed] = useState(() => loadCollapsed(`ft-${title}`))
   const searching = searchQuery.trim().length > 0
 
   const visibleLines = useMemo(() => {
@@ -276,6 +290,8 @@ export function FreeTextTable({ title, lines, onChange, searchQuery = '' }: Free
   useEffect(() => {
     if (searching && visibleLines.length > 0) setCollapsed(false)
   }, [searching, visibleLines.length])
+
+  useEffect(() => { saveCollapsed(`ft-${title}`, collapsed) }, [collapsed, title])
 
   const updateLine = (id: string, patch: Partial<FreeTextLine>) => {
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))

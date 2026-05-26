@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { EstimateProvider, useEstimate } from './context/EstimateContext'
 import type { SectionId } from './types'
 import { exportEstimateToPdf } from './utils/export'
+import { formatCurrency } from './utils/calculations'
 
 const NAV = SECTION_META
 
@@ -39,6 +40,7 @@ function AppContent() {
     saveToLocalStorage,
     state,
     totals,
+    sectionSubtotals,
     validateAndProceed,
   } = useEstimate()
   const [helpOpen, setHelpOpen] = useState(false)
@@ -133,7 +135,18 @@ function AppContent() {
                     ⚙
                   </span>
                 )}
-                <span className="block leading-tight">{item.label}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block leading-tight">{item.label}</span>
+                  {item.step > 0 && sectionSubtotals[item.id] != null && sectionSubtotals[item.id]! > 0 && (
+                    <span
+                      className={`mt-0.5 block text-xs tabular-nums ${
+                        isActive ? 'text-daikin-navy/80' : 'text-blue-300'
+                      }`}
+                    >
+                      {formatCurrency(sectionSubtotals[item.id]!)}
+                    </span>
+                  )}
+                </span>
               </button>
             )
           })}

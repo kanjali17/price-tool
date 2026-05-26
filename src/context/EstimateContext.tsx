@@ -41,6 +41,7 @@ import {
   autoFillLineItems,
   calculateTotals,
   countActiveEquipmentLines,
+  getNavSectionSubtotals,
   deriveControlsWiringQuantities,
   parseQuantity,
   type EquipmentLineKey,
@@ -164,6 +165,7 @@ function loadAdminRates(): typeof defaultAdminRates {
 interface EstimateContextValue {
   state: EstimateState
   totals: ReturnType<typeof calculateTotals>
+  sectionSubtotals: Partial<Record<SectionId, number>>
   hasUnsavedChanges: boolean
   saveToLocalStorage: () => void
   activeSection: SectionId
@@ -332,6 +334,10 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
   )
 
   const totals = useMemo(() => calculateTotals(state), [state])
+  const sectionSubtotals = useMemo(
+    () => getNavSectionSubtotals(state, totals),
+    [state, totals]
+  )
 
   const saveToLocalStorage = useCallback(() => {
     if (saveTimerRef.current) {
@@ -393,10 +399,16 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
         const next = [...savedProjects, project]
         setSavedProjects(next)
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(next))
+        persistState(state)
+        track(ANALYTICS_EVENTS.estimate_saved, {
+          total: totals.totalInstallCost,
+          section_count: 6,
+          equipment_line_items: countActiveEquipmentLines(state),
+        })
         logChange(`Saved project: ${project.name}`)
       })
     },
-    [state, savedProjects, logChange, validateAndProceed]
+    [state, savedProjects, logChange, validateAndProceed, persistState, totals.totalInstallCost]
   )
 
   const loadProject = useCallback(
@@ -472,6 +484,7 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
   const value: EstimateContextValue = {
     state,
     totals,
+    sectionSubtotals,
     hasUnsavedChanges,
     saveToLocalStorage,
     activeSection,

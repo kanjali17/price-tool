@@ -11,9 +11,12 @@ import { StickySummaryBar } from './components/StickySummaryBar'
 import { SummarySection } from './components/SummarySection'
 import { VrvSection } from './components/VrvSection'
 import { SECTION_META, WORKFLOW_SECTIONS } from './data/sectionGuide'
-import { useCallback, useState } from 'react'
+import { track } from './analytics/amplitude'
+import { ANALYTICS_EVENTS } from './analytics/events'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { EstimateProvider, useEstimate } from './context/EstimateContext'
 import type { SectionId } from './types'
+import { exportEstimateToPdf } from './utils/export'
 
 const NAV = SECTION_META
 
@@ -30,11 +33,60 @@ function nextWorkflowSection(current: SectionId): SectionId | null {
 }
 
 function AppContent() {
-  const { activeSection, setActiveSection } = useEstimate()
+  const {
+    activeSection,
+    setActiveSection,
+    saveToLocalStorage,
+    state,
+    totals,
+    validateAndProceed,
+  } = useEstimate()
   const [helpOpen, setHelpOpen] = useState(false)
   const openHelp = useCallback(() => setHelpOpen(true), [])
+  const sectionObserverRef = useRef<IntersectionObserver | null>(null)
+  const sectionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useHelpTutorialAutoOpen(openHelp)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        saveToLocalStorage()
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault()
+        validateAndProceed('complete', () => exportEstimateToPdf(state, totals))
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [saveToLocalStorage, state, totals, validateAndProceed])
+
+  useEffect(() => {
+    sectionObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const name = (entry.target as HTMLElement).dataset.sectionName
+          if (!name) continue
+          if (sectionDebounceRef.current) clearTimeout(sectionDebounceRef.current)
+          sectionDebounceRef.current = setTimeout(() => {
+            track(ANALYTICS_EVENTS.section_viewed, { section_name: name })
+          }, 600)
+        }
+      },
+      { threshold: 0.25 }
+    )
+    return () => {
+      sectionObserverRef.current?.disconnect()
+      if (sectionDebounceRef.current) clearTimeout(sectionDebounceRef.current)
+    }
+  }, [])
+
+  const observeSection = useCallback((el: HTMLDivElement | null) => {
+    if (el) sectionObserverRef.current?.observe(el)
+  }, [])
 
   const next = nextWorkflowSection(activeSection)
   const nextMeta = next ? WORKFLOW_SECTIONS.find((s) => s.id === next) : null
@@ -118,12 +170,36 @@ function AppContent() {
             />
           )}
 
-          {activeSection === 'vrv' && <VrvSection />}
-          {activeSection === 'other' && <OtherEquipmentSection />}
-          {activeSection === 'piping' && <PipingSection />}
-          {activeSection === 'controls' && <ControlsSection />}
-          {activeSection === 'summary' && <SummarySection />}
-          {activeSection === 'admin' && <AdminSettings />}
+          {activeSection === 'vrv' && (
+            <div ref={observeSection} data-section-name="vrv">
+              <VrvSection />
+            </div>
+          )}
+          {activeSection === 'other' && (
+            <div ref={observeSection} data-section-name="other">
+              <OtherEquipmentSection />
+            </div>
+          )}
+          {activeSection === 'piping' && (
+            <div ref={observeSection} data-section-name="piping">
+              <PipingSection />
+            </div>
+          )}
+          {activeSection === 'controls' && (
+            <div ref={observeSection} data-section-name="controls">
+              <ControlsSection />
+            </div>
+          )}
+          {activeSection === 'summary' && (
+            <div ref={observeSection} data-section-name="summary">
+              <SummarySection />
+            </div>
+          )}
+          {activeSection === 'admin' && (
+            <div ref={observeSection} data-section-name="admin">
+              <AdminSettings />
+            </div>
+          )}
         </div>
       </main>
 

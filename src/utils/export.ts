@@ -1,7 +1,9 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { track } from '../analytics/amplitude'
+import { ANALYTICS_EVENTS } from '../analytics/events'
 import type { CalculatedTotals, EstimateState } from '../types'
-import { formatCurrency } from './calculations'
+import { countActiveEquipmentLines, formatCurrency } from './calculations'
 
 export function exportEstimateToPdf(
   state: EstimateState,
@@ -55,4 +57,9 @@ export function exportEstimateToPdf(
   }
 
   doc.save(`${h.projectName || 'estimate'}-daikin-install.pdf`)
+
+  track(ANALYTICS_EVENTS.pdf_exported, {
+    total: totals.totalInstallCost,
+    line_item_count: countActiveEquipmentLines(state),
+  })
 }

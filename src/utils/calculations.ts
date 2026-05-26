@@ -2,6 +2,7 @@ import type {
   AdminRates,
   CalculatedTotals,
   EstimateState,
+  SectionId,
   FreeTextLine,
   InsulationThickness,
   LineItem,
@@ -313,6 +314,78 @@ export function applyAllEquipmentAutoFill(state: EstimateState): EstimateState {
   return filled
 }
 
+
+function sumEquipmentRows(items: LineItem[]): number {
+  return items.reduce((s, i) => s + i.equipmentCost * (i.quantity || 0), 0)
+}
+
+/** Live section subtotals for sidebar (not grand total — that stays on sticky bar). */
+export function getNavSectionSubtotals(
+  state: EstimateState,
+  totals: CalculatedTotals
+): Partial<Record<SectionId, number>> {
+  const vrv =
+    sumEquipmentRows(state.vrvOutdoor) +
+    sumEquipmentRows(state.vrvBranchSelector) +
+    sumEquipmentRows(state.vrvIndoor) +
+    sumEquipmentRows(state.vrvRefnet) +
+    sumEquipmentRows(state.vrvRefrigerant) +
+    sumEquipmentRows(state.vrvControllers)
+
+  const other =
+    sumEquipmentRows(state.otherRtuDoas) +
+    sumEquipmentRows(state.otherSkyAir) +
+    sumEquipmentRows(state.otherMultiSplit) +
+    sumEquipmentRows(state.otherMiniSplit) +
+    sumEquipmentRows(state.otherZoning) +
+    sumFreeTextLines(state.otherGeneralEquipment).equipment +
+    sumFreeTextLines(state.otherSheetMetal).equipment +
+    sumFreeTextLines(state.otherDrawingTime).equipment +
+    sumFreeTextLines(state.otherPipingFreeText).equipment
+
+  return {
+    vrv,
+    other,
+    piping: totals.pipingSectionCost + totals.insulationCost,
+    controls: totals.controlsTotal,
+  }
+}
+
+
+/** Rated tons from outdoor model text (max MBH in name ÷ 12). */
+export function parseOutdoorUnitTons(model: string): number {
+  const rangeMatch = model.match(/(\d+)\s*-\s*(\d+)/)
+  if (rangeMatch) {
+    const max = Math.max(parseInt(rangeMatch[1], 10), parseInt(rangeMatch[2], 10))
+    return max / 12
+  }
+  const nums = model.match(/\d+/g)
+  if (!nums?.length) return 0
+  const max = Math.max(...nums.map((n) => parseInt(n, 10)))
+  return max >= 12 ? max / 12 : 0
+}
+
+export function sumOutdoorUnitTonnage(state: EstimateState): number {
+  const sections = [state.vrvOutdoor, state.otherSkyAir, state.otherMultiSplit, state.otherMiniSplit]
+  let total = 0
+  for (const section of sections) {
+    for (const item of section) {
+      const q = item.quantity || 0
+      if (q > 0) total += parseOutdoorUnitTons(item.model) * q
+    }
+  }
+  return Math.round(total * 100) / 100
+}
+
+export function countActiveEquipmentLines(state: EstimateState): number {
+  const sections = [
+    state.vrvOutdoor, state.vrvBranchSelector, state.vrvIndoor, state.vrvRefnet,
+    state.vrvRefrigerant, state.vrvControllers, state.otherRtuDoas, state.otherSkyAir,
+    state.otherMultiSplit, state.otherMiniSplit, state.otherZoning,
+  ]
+  return sections.reduce((n, sec) => n + sec.filter((i) => (i.quantity || 0) > 0).length, 0)
+}
+
 export function calculateTotals(state: EstimateState): CalculatedTotals {
   const rate = state.adminRates.laborRates.sheetMetalPipingRate
   const controlsRate = state.adminRates.laborRates.controlsRate
@@ -413,6 +486,9 @@ export function calculateTotals(state: EstimateState): CalculatedTotals {
     (pipingCalc.hours * state.adminRates.laborRates.insulationRate) / 8
 
   const tax = state.summary.salesTaxPercent / 100
+  const materialsSubtotal = smMatlsWithConsumables + pfMatlsWithConsumables
+  const salesTaxAmount = (equipmentCost + materialsSubtotal) * tax
+  const derivedOutdoorTons = sumOutdoorUnitTonnage(state)
   const equipmentWithTax = equipmentCost * (1 + tax)
   const smMatlsWithTax = smMatlsWithConsumables * (1 + tax)
   const pfMatlsWithTax = pfMatlsWithConsumables * (1 + tax)
@@ -444,6 +520,9 @@ export function calculateTotals(state: EstimateState): CalculatedTotals {
 
   return {
     equipmentCost,
+    materialsSubtotal,
+    salesTaxAmount,
+    derivedOutdoorTons,
     sheetMetalMaterials: smMatlsWithConsumables,
     pipingMaterials: pfMatlsWithConsumables,
     sheetMetalHours,

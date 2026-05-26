@@ -15,6 +15,8 @@ export function ProjectTools() {
     showValidation,
     validation,
     setActiveSection,
+    saveToLocalStorage,
+    hasUnsavedChanges,
   } = useEstimate()
   const [saveName, setSaveName] = useState('')
   const [showLog, setShowLog] = useState(false)
@@ -48,6 +50,14 @@ export function ProjectTools() {
           }}
         >
           Save copy
+        </button>
+        <button
+          type="button"
+          className="rounded-lg border border-daikin-accent px-4 py-2 text-sm font-medium text-daikin-navy hover:bg-amber-50"
+          onClick={() => saveToLocalStorage()}
+          title="Ctrl+S"
+        >
+          Save now{hasUnsavedChanges ? ' *' : ''}
         </button>
         <button
           type="button"

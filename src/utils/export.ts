@@ -1,7 +1,9 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { track } from '../analytics/amplitude'
+import { ANALYTICS_EVENTS } from '../analytics/events'
 import type { CalculatedTotals, EstimateState } from '../types'
-import { formatCurrency } from './calculations'
+import { countActiveEquipmentLines, formatCurrency } from './calculations'
 
 export function exportEstimateToPdf(
   state: EstimateState,
@@ -39,9 +41,13 @@ export function exportEstimateToPdf(
   })
 
   const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 120
-  if (state.summary.totalCapacityTons > 0) {
+  const tons =
+    state.summary.totalCapacityTons > 0
+      ? state.summary.totalCapacityTons
+      : totals.derivedOutdoorTons
+  if (tons > 0) {
     doc.text(
-      `$/ton: ${formatCurrency(totals.totalInstallCost / state.summary.totalCapacityTons)}`,
+      `$/ton: ${formatCurrency(totals.totalInstallCost / tons)}`,
       14,
       finalY + 12
     )
@@ -55,4 +61,9 @@ export function exportEstimateToPdf(
   }
 
   doc.save(`${h.projectName || 'estimate'}-daikin-install.pdf`)
+
+  track(ANALYTICS_EVENTS.pdf_exported, {
+    total: totals.totalInstallCost,
+    line_item_count: countActiveEquipmentLines(state),
+  })
 }

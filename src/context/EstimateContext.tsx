@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -34,9 +35,13 @@ import {
   type ValidationResult,
   type ValidationScope,
 } from '../utils/validation'
+import { setAnalyticsEstimateContext, track } from '../analytics/amplitude'
+import { ANALYTICS_EVENTS } from '../analytics/events'
 import {
   autoFillLineItems,
   calculateTotals,
+  countActiveEquipmentLines,
+  getNavSectionSubtotals,
   deriveControlsWiringQuantities,
   parseQuantity,
   type EquipmentLineKey,
@@ -45,6 +50,11 @@ import {
 const STORAGE_KEY = 'daikin-estimate-current'
 const PROJECTS_KEY = 'daikin-estimate-projects'
 const ADMIN_KEY = 'daikin-estimate-admin'
+const SAVE_DEBOUNCE_MS = 2000
+
+export function createEstimateId(): string {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 8)
+}
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
@@ -52,6 +62,7 @@ function todayISO(): string {
 
 export function createInitialState(): EstimateState {
   return {
+    estimateId: createEstimateId(),
     header: {
       projectName: '',
       location: '',
@@ -154,13 +165,16 @@ function loadAdminRates(): typeof defaultAdminRates {
 interface EstimateContextValue {
   state: EstimateState
   totals: ReturnType<typeof calculateTotals>
+  sectionSubtotals: Partial<Record<SectionId, number>>
+  hasUnsavedChanges: boolean
+  saveToLocalStorage: () => void
   activeSection: SectionId
   setActiveSection: (s: SectionId) => void
   updateHeader: (patch: Partial<EstimateState['header']>) => void
   updateLineItems: (key: keyof Pick<EstimateState, 'vrvOutdoor' | 'vrvBranchSelector' | 'vrvIndoor' | 'vrvRefnet' | 'vrvRefrigerant' | 'vrvControllers' | 'otherRtuDoas' | 'otherSkyAir' | 'otherMultiSplit' | 'otherMiniSplit' | 'otherZoning'>, items: LineItem[]) => void
   updateFreeText: (key: keyof Pick<EstimateState, 'otherGeneralEquipment' | 'otherSheetMetal' | 'otherDrawingTime' | 'otherPipingFreeText'>, lines: FreeTextLine[]) => void
   updateState: (patch: Partial<EstimateState>) => void
-  logChange: (message: string) => void
+  logChange: (message: string, previousValue?: string) => void
   savedProjects: SavedProject[]
   saveProject: (name: string) => void
   loadProject: (id: string) => void
@@ -188,7 +202,12 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as EstimateState
-        return { ...createInitialState(), ...parsed, adminRates: admin }
+        return {
+          ...createInitialState(),
+          ...parsed,
+          estimateId: parsed.estimateId || createEstimateId(),
+          adminRates: admin,
+        }
       }
     } catch {
       /* ignore */
@@ -196,9 +215,48 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
     return buildSampleEstimateState({ ...createInitialState(), adminRates: admin })
   })
 
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const lastSavedRef = useRef('')
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hydratedRef = useRef(false)
+  const equipmentTrackTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  const persistState = useCallback((next: EstimateState) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    lastSavedRef.current = JSON.stringify(next)
+    setHasUnsavedChanges(false)
+  }, [])
+
+  const logChange = useCallback((message: string, previousValue?: string) => {
+    const entry =
+      previousValue !== undefined ? `${message} (was: ${previousValue})` : message
+    setState((prev) => ({
+      ...prev,
+      changeLog: [
+        { timestamp: new Date().toISOString(), message: entry },
+        ...prev.changeLog.slice(0, 99),
+      ],
+    }))
+  }, [])
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  }, [state])
+    if (!hydratedRef.current) {
+      hydratedRef.current = true
+      lastSavedRef.current = JSON.stringify(state)
+      return
+    }
+    const serialized = JSON.stringify(state)
+    if (serialized === lastSavedRef.current) return
+    setHasUnsavedChanges(true)
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      persistState(state)
+      saveTimerRef.current = null
+    }, SAVE_DEBOUNCE_MS)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [state, persistState])
 
   useEffect(() => {
     try {
@@ -207,16 +265,6 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
-  }, [])
-
-  const logChange = useCallback((message: string) => {
-    setState((prev) => ({
-      ...prev,
-      changeLog: [
-        { timestamp: new Date().toISOString(), message },
-        ...prev.changeLog.slice(0, 99),
-      ],
-    }))
   }, [])
 
   const applyAutoFill = useCallback(
@@ -244,6 +292,22 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
       items: LineItem[]
     ) => {
       const filled = applyAutoFill(key as EquipmentLineKey, items)
+      for (const item of filled) {
+        const prevItem = state[key].find((i) => i.id === item.id)
+        if (!prevItem || prevItem.quantity === item.quantity) continue
+        const timerKey = `${key}-${item.id}`
+        if (equipmentTrackTimers.current[timerKey]) {
+          clearTimeout(equipmentTrackTimers.current[timerKey])
+        }
+        equipmentTrackTimers.current[timerKey] = setTimeout(() => {
+          track(ANALYTICS_EVENTS.equipment_quantity_changed, {
+            model: item.model.slice(0, 32),
+            new_qty: item.quantity || 0,
+            row_total: item.equipmentCost * (item.quantity || 0),
+          })
+          delete equipmentTrackTimers.current[timerKey]
+        }, 1500)
+      }
       setState((prev) => {
         const next = { ...prev, [key]: filled }
         const equipmentKeys = [
@@ -266,10 +330,33 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
       })
       logChange(`Updated ${key}`)
     },
-    [applyAutoFill, logChange]
+    [applyAutoFill, logChange, state]
   )
 
   const totals = useMemo(() => calculateTotals(state), [state])
+  const sectionSubtotals = useMemo(
+    () => getNavSectionSubtotals(state, totals),
+    [state, totals]
+  )
+
+  const saveToLocalStorage = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    persistState(state)
+    logChange('Saved estimate to browser storage')
+    track(ANALYTICS_EVENTS.estimate_saved, {
+      total: totals.totalInstallCost,
+      section_count: 6,
+      equipment_line_items: countActiveEquipmentLines(state),
+    })
+  }, [persistState, state, logChange, totals.totalInstallCost])
+
+  useEffect(() => {
+    setAnalyticsEstimateContext(state.estimateId, totals.totalInstallCost)
+  }, [state.estimateId, totals.totalInstallCost])
+
   const validation = useMemo(
     () => validateEstimate(state, validationScope ?? 'header'),
     [state, validationScope]
@@ -312,10 +399,16 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
         const next = [...savedProjects, project]
         setSavedProjects(next)
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(next))
+        persistState(state)
+        track(ANALYTICS_EVENTS.estimate_saved, {
+          total: totals.totalInstallCost,
+          section_count: 6,
+          equipment_line_items: countActiveEquipmentLines(state),
+        })
         logChange(`Saved project: ${project.name}`)
       })
     },
-    [state, savedProjects, logChange, validateAndProceed]
+    [state, savedProjects, logChange, validateAndProceed, persistState, totals.totalInstallCost]
   )
 
   const loadProject = useCallback(
@@ -391,6 +484,9 @@ export function EstimateProvider({ children }: { children: ReactNode }) {
   const value: EstimateContextValue = {
     state,
     totals,
+    sectionSubtotals,
+    hasUnsavedChanges,
+    saveToLocalStorage,
     activeSection,
     setActiveSection,
     updateHeader: (patch) => setState((p) => ({ ...p, header: { ...p.header, ...patch } })),

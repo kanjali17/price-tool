@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FreeTextLine, LineItem } from '../types'
 import { formatCurrency, formatNumber, parseQuantity } from '../utils/calculations'
+const COLLAPSE_STORAGE_KEY = 'daikin-equipment-collapse'
+function loadCollapsed(k: string) {
+  try { return !!(JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY) || '{}') as Record<string, boolean>)[k] } catch { return false }
+}
+function saveCollapsed(k: string, v: boolean) {
+  try {
+    const o = JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY) || '{}') as Record<string, boolean>
+    o[k] = v
+    localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(o))
+  } catch { /* */ }
+}
+
 import { matchesEquipmentSearch, sortBySearchRelevance } from '../utils/equipmentSearch'
 
 interface EquipmentTableProps {
@@ -97,14 +109,15 @@ export function EquipmentTable({
   onBulkEntry,
   searchQuery = '',
 }: EquipmentTableProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => loadCollapsed(title))
   const [bulkText, setBulkText] = useState('')
-  const [hideUnused, setHideUnused] = useState(false)
   const searching = searchQuery.trim().length > 0
 
   useEffect(() => {
     if (searching) setCollapsed(false)
   }, [searching])
+
+  useEffect(() => { saveCollapsed(title, collapsed) }, [collapsed, title])
 
   const updateItem = (id: string, patch: Partial<LineItem>) => {
     onChange(items.map((i) => (i.id === id ? { ...i, ...patch } : i)))
@@ -120,21 +133,15 @@ export function EquipmentTable({
 
   const visibleItems = useMemo(() => {
     let list = searching ? searchMatches : items
-    if (!searching && hideUnused) list = list.filter((i) => i.quantity > 0)
     if (searching) list = sortBySearchRelevance(list, searchQuery)
     return list
-  }, [items, searchMatches, searchQuery, searching, hideUnused])
+  }, [items, searchMatches, searchQuery, searching])
 
   const activeCount = items.filter((i) => i.quantity > 0).length
 
   if (searching && searchMatches.length === 0) {
     return null
   }
-
-  const sectionTotal = items.reduce((s, i) => {
-    const q = i.quantity || 0
-    return s + i.equipmentCost * q
-  }, 0)
 
   return (
     <div className="mb-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -146,7 +153,7 @@ export function EquipmentTable({
         <span>{title}</span>
         <span className="flex flex-wrap items-center gap-2 text-sm font-normal text-slate-600">
           <span>
-            {activeCount} line{activeCount !== 1 ? 's' : ''} · {formatCurrency(sectionTotal)}
+            {activeCount} active line{activeCount !== 1 ? 's' : ''}
           </span>
           {collapsible && <span>{collapsed ? '▼' : '▲'}</span>}
         </span>
@@ -154,24 +161,13 @@ export function EquipmentTable({
 
       {!collapsed && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-1.5">
-            {searching && (
+          {searching && (
+            <div className="border-b border-slate-100 px-4 py-1.5">
               <span className="text-xs text-daikin-navy">
                 {searchMatches.length} match{searchMatches.length !== 1 ? 'es' : ''} in this section
               </span>
-            )}
-            {!searching && <span />}
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
-              <input
-                type="checkbox"
-                checked={hideUnused}
-                onChange={(e) => setHideUnused(e.target.checked)}
-                disabled={searching}
-                className="rounded border-slate-300"
-              />
-              Only rows with qty
-            </label>
-          </div>
+            </div>
+          )}
           {showBulkEntry && onBulkEntry && (
             <div className="border-b border-slate-100 bg-blue-50/50 px-4 py-3">
               <p className="mb-2 text-xs text-slate-600">Quick entry: one model per line (model qty)</p>
@@ -214,7 +210,7 @@ export function EquipmentTable({
                     <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                       {searching
                         ? 'No models match this search in this table.'
-                        : 'No rows with quantity yet. Uncheck the filter above or enter a qty on a model.'}
+                        : 'Enter a quantity on any model to include it in the estimate.'}
                     </td>
                   </tr>
                 )}
@@ -283,7 +279,7 @@ interface FreeTextTableProps {
 }
 
 export function FreeTextTable({ title, lines, onChange, searchQuery = '' }: FreeTextTableProps) {
-  const [collapsed, setCollapsed] = useState(true)
+  const [collapsed, setCollapsed] = useState(() => loadCollapsed(`ft-${title}`))
   const searching = searchQuery.trim().length > 0
 
   const visibleLines = useMemo(() => {
@@ -294,6 +290,8 @@ export function FreeTextTable({ title, lines, onChange, searchQuery = '' }: Free
   useEffect(() => {
     if (searching && visibleLines.length > 0) setCollapsed(false)
   }, [searching, visibleLines.length])
+
+  useEffect(() => { saveCollapsed(`ft-${title}`, collapsed) }, [collapsed, title])
 
   const updateLine = (id: string, patch: Partial<FreeTextLine>) => {
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))

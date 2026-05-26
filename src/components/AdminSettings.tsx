@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { AdminAnalytics } from '../analytics/AdminAnalytics'
+import { track } from '../analytics/amplitude'
+import { ANALYTICS_EVENTS } from '../analytics/events'
 import { useEstimate } from '../context/EstimateContext'
 import type { AdminRates } from '../types'
 
@@ -8,6 +11,7 @@ export function AdminSettings() {
   const { state, updateState } = useEstimate()
   const [unlocked, setUnlocked] = useState(false)
   const [password, setPassword] = useState('')
+  const [tab, setTab] = useState<'settings' | 'analytics'>('settings')
   const admin = state.adminRates
 
   const updateRates = (patch: Partial<AdminRates>) => {
@@ -15,7 +19,17 @@ export function AdminSettings() {
   }
 
   const updateLabor = (patch: Partial<AdminRates['laborRates']>) => {
-    updateRates({ laborRates: { ...admin.laborRates, ...patch } })
+    const prev = admin.laborRates
+    updateRates({ laborRates: { ...prev, ...patch } })
+    for (const [field, newValue] of Object.entries(patch)) {
+      const oldValue = prev[field as keyof typeof prev]
+      if (oldValue !== newValue) {
+        track(ANALYTICS_EVENTS.labor_rate_changed, {
+          field: field.slice(0, 32),
+          new_value: newValue as number,
+        })
+      }
+    }
   }
 
   if (!unlocked) {
@@ -47,95 +61,124 @@ export function AdminSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border bg-white p-4">
-        <h3 className="mb-3 font-semibold text-daikin-navy">Labor Rates</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="text-sm">
-            Sheet Metal / Piping ($/hr)
-            <input
-              type="number"
-              className="mt-1 w-full rounded border bg-daikin-input px-2 py-1"
-              value={admin.laborRates.sheetMetalPipingRate}
-              onChange={(e) => updateLabor({ sheetMetalPipingRate: parseFloat(e.target.value) || 0 })}
-            />
-          </label>
-          <label className="text-sm">
-            Controls ($/hr)
-            <input
-              type="number"
-              className="mt-1 w-full rounded border bg-daikin-input px-2 py-1"
-              value={admin.laborRates.controlsRate}
-              onChange={(e) => updateLabor({ controlsRate: parseFloat(e.target.value) || 0 })}
-            />
-          </label>
-          <label className="text-sm">
-            Insulation ($/hr)
-            <input
-              type="number"
-              className="mt-1 w-full rounded border bg-daikin-input px-2 py-1"
-              value={admin.laborRates.insulationRate}
-              onChange={(e) => updateLabor({ insulationRate: parseFloat(e.target.value) || 0 })}
-            />
-          </label>
-          <label className="text-sm">
-            Insulation (ft/day)
-            <input
-              type="number"
-              className="mt-1 w-full rounded border bg-daikin-input px-2 py-1"
-              value={admin.laborRates.insulationFtPerDay}
-              onChange={(e) => updateLabor({ insulationFtPerDay: parseFloat(e.target.value) || 0 })}
-            />
-          </label>
+      <div className="flex gap-2 border-b border-slate-200">
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-medium ${tab === 'settings' ? 'border-b-2 border-daikin-navy text-daikin-navy' : 'text-slate-500'}`}
+          onClick={() => setTab('settings')}
+        >
+          Settings
+        </button>
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-medium ${tab === 'analytics' ? 'border-b-2 border-daikin-navy text-daikin-navy' : 'text-slate-500'}`}
+          onClick={() => setTab('analytics')}
+        >
+          Analytics
+        </button>
+      </div>
+
+      {tab === 'analytics' ? (
+        <div className="rounded-lg border border-slate-700 bg-[#0F1923] p-4">
+          <AdminAnalytics active />
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="rounded-lg border bg-white p-4">
+            <h3 className="mb-3 font-semibold text-daikin-navy">Labor Rates</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="text-sm">
+                Sheet Metal / Piping ($/hr)
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded border bg-daikin-input px-2 py-1"
+                  value={admin.laborRates.sheetMetalPipingRate}
+                  onChange={(e) =>
+                    updateLabor({ sheetMetalPipingRate: parseFloat(e.target.value) || 0 })
+                  }
+                />
+              </label>
+              <label className="text-sm">
+                Controls ($/hr)
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded border bg-daikin-input px-2 py-1"
+                  value={admin.laborRates.controlsRate}
+                  onChange={(e) => updateLabor({ controlsRate: parseFloat(e.target.value) || 0 })}
+                />
+              </label>
+              <label className="text-sm">
+                Insulation ($/hr)
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded border bg-daikin-input px-2 py-1"
+                  value={admin.laborRates.insulationRate}
+                  onChange={(e) => updateLabor({ insulationRate: parseFloat(e.target.value) || 0 })}
+                />
+              </label>
+              <label className="text-sm">
+                Insulation (ft/day)
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded border bg-daikin-input px-2 py-1"
+                  value={admin.laborRates.insulationFtPerDay}
+                  onChange={(e) =>
+                    updateLabor({ insulationFtPerDay: parseFloat(e.target.value) || 0 })
+                  }
+                />
+              </label>
+            </div>
+          </div>
 
-      <AdminTable
-        title="VRV Outdoor Unit Install Hours"
-        rows={Object.entries(admin.outdoorUnitHours).map(([model, v]) => ({
-          key: model,
-          cols: [v.setHours, v.pipeHours, v.pipeMatls, v.isoPads],
-        }))}
-        headers={['Set Hrs', 'Pipe Hrs', 'Pipe Matls', 'ISO Pads']}
-        onUpdate={(key, cols) => {
-          updateRates({
-            outdoorUnitHours: {
-              ...admin.outdoorUnitHours,
-              [key]: {
-                setHours: cols[0],
-                pipeHours: cols[1],
-                pipeMatls: cols[2],
-                isoPads: cols[3],
-              },
-            },
-          })
-        }}
-      />
+          <AdminTable
+            title="VRV Outdoor Unit Install Hours"
+            rows={Object.entries(admin.outdoorUnitHours).map(([model, v]) => ({
+              key: model,
+              cols: [v.setHours, v.pipeHours, v.pipeMatls, v.isoPads],
+            }))}
+            headers={['Set Hrs', 'Pipe Hrs', 'Pipe Matls', 'ISO Pads']}
+            onUpdate={(key, cols) => {
+              updateRates({
+                outdoorUnitHours: {
+                  ...admin.outdoorUnitHours,
+                  [key]: {
+                    setHours: cols[0],
+                    pipeHours: cols[1],
+                    pipeMatls: cols[2],
+                    isoPads: cols[3],
+                  },
+                },
+              })
+            }}
+          />
 
-      <AdminTable
-        title="Copper ACR Pricing ($/ft)"
-        rows={Object.entries(admin.copperAcrPricing).map(([size, v]) => ({
-          key: size,
-          cols: [v.copper, v.insulHalf, v.insulThreeQuarter, v.insulOne],
-        }))}
-        headers={['Copper', '1/2" Insul', '3/4" Insul', '1" Insul']}
-        onUpdate={(key, cols) => {
-          updateRates({
-            copperAcrPricing: {
-              ...admin.copperAcrPricing,
-              [key]: {
-                copper: cols[0],
-                insulHalf: cols[1],
-                insulThreeQuarter: cols[2],
-                insulOne: cols[3],
-              },
-            },
-          })
-        }}
-      />
+          <AdminTable
+            title="Copper ACR Pricing ($/ft)"
+            rows={Object.entries(admin.copperAcrPricing).map(([size, v]) => ({
+              key: size,
+              cols: [v.copper, v.insulHalf, v.insulThreeQuarter, v.insulOne],
+            }))}
+            headers={['Copper', '1/2" Insul', '3/4" Insul', '1" Insul']}
+            onUpdate={(key, cols) => {
+              updateRates({
+                copperAcrPricing: {
+                  ...admin.copperAcrPricing,
+                  [key]: {
+                    copper: cols[0],
+                    insulHalf: cols[1],
+                    insulThreeQuarter: cols[2],
+                    insulOne: cols[3],
+                  },
+                },
+              })
+            }}
+          />
 
-      <div className="rounded-lg border bg-amber-50 p-4 text-sm text-amber-900">
-        Changes save automatically to localStorage and apply to all new quantity entries.
-      </div>
+          <div className="rounded-lg border bg-amber-50 p-4 text-sm text-amber-900">
+            Changes save automatically to localStorage and apply to all new quantity entries.
+          </div>
+        </>
+      )}
     </div>
   )
 }

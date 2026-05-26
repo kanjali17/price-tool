@@ -159,6 +159,7 @@ export interface SavedProject {
 }
 
 export interface EstimateState {
+  estimateId: string
   header: ProjectHeader
   vrvOutdoor: LineItem[]
   vrvBranchSelector: LineItem[]
@@ -195,6 +196,9 @@ export interface EstimateState {
 
 export interface CalculatedTotals {
   equipmentCost: number
+  materialsSubtotal: number
+  salesTaxAmount: number
+  derivedOutdoorTons: number
   sheetMetalMaterials: number
   pipingMaterials: number
   sheetMetalHours: number

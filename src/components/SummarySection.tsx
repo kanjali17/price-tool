@@ -1,3 +1,5 @@
+import { track } from '../analytics/amplitude'
+import { ANALYTICS_EVENTS } from '../analytics/events'
 import { ValidationBanner } from './ValidationBanner'
 import { useEstimate } from '../context/EstimateContext'
 import { exportEstimateToPdf } from '../utils/export'
@@ -54,6 +56,14 @@ export function SummarySection() {
 
   const updateSummary = (patch: Partial<typeof s>) => {
     updateState({ summary: { ...s, ...patch } })
+    for (const [field, newValue] of Object.entries(patch)) {
+      if (field.includes('Markup') && typeof newValue === 'number') {
+        track(ANALYTICS_EVENTS.markup_changed, {
+          field: field.slice(0, 32),
+          new_value: newValue,
+        })
+      }
+    }
   }
 
   const updateSub = (id: string, amount: number) => {
@@ -75,11 +85,14 @@ export function SummarySection() {
   const tax = s.salesTaxPercent / 100
   const equipmentTaxed = totals.equipmentCost * (1 + tax)
 
+  const tonsForMetrics =
+    s.totalCapacityTons > 0 ? s.totalCapacityTons : totals.derivedOutdoorTons
+
   const metrics =
-    s.totalCapacityTons > 0
+    tonsForMetrics > 0
       ? {
-          perTon: totals.totalInstallCost / s.totalCapacityTons,
-          equipPerTon: equipmentTaxed / s.totalCapacityTons,
+          perTon: totals.totalInstallCost / tonsForMetrics,
+          equipPerTon: equipmentTaxed / tonsForMetrics,
         }
       : null
 
@@ -134,7 +147,7 @@ export function SummarySection() {
                   value={s.salesTaxPercent}
                   onChange={(e) => updateSummary({ salesTaxPercent: parseFloat(e.target.value) || 0 })}
                 />
-                <span className="ml-2 text-slate-600">{formatCurrency(totals.equipmentCost * tax)}</span>
+                <span className="ml-2 text-slate-600">{formatCurrency(totals.salesTaxAmount)}</span>
               </td>
             </tr>
             <SummaryRow label="Equipment (incl. tax)" value={formatCurrency(equipmentTaxed)} highlight="green" />
